@@ -3,21 +3,19 @@ var exec = require('child_process').exec;
 var arguments = process.argv.splice(2);
 console.log('所传递的参数是：', arguments);
 
-var home_path = process.env.HOME();//???
+var home_path = process.env.HOME;
 
 var cmdStr = '';
-//arguments.forEach(function (val, index, array) {
-//  cmdStr = cmdStr + ' ' + val ;
-//});
+
+var stdoutStr = '';
+
 
 function Cmd(cmdStr){
 	exec(cmdStr, function(err,stdout,stderr){
    	 if(err) {
-       		console.log('error:'+stderr);
-		return stderr;
+		stdoutStr = stderr ;
   	  } else {
-		console.log('stdout:'+stdout);
-		return stdout;
+		stdoutStr = stdout ;
   	  }
 });
 
@@ -36,26 +34,60 @@ function type_prompt(home_path){
 }
 
 
-function read_command(){
+function read_command(input){
 	//
-	var arr = cmdStr.toString().split(" ");
+	var arr = input.split(" ");
+	console.log(arr.length);
 	if( arr[0] == 'cd' ){
-		var arguments_tmp = process.argv.splice(1);
 		var cmdStr_tmp = '';
 		arr.forEach(function (val, index, array) {
 			if(index != 0 ){
-				  cmdStr_tmp = cmdStr_tmp + ' ' + cmdStr_tmp ;
+				if (index == 1) {
+					cmdStr_tmp = val;
+				}else{
+				  	cmdStr_tmp = cmdStr_tmp + ' ' +  val;
+				}
 			}
 		});
-		console.log('所传递的参数是：', cmdStr_tmp);
 		process.chdir(cmdStr_tmp);
-		return '';
 	}else {
-		console.log('所传递的参数是：', cmdStr);
-		return Cmd(cmdStr);
+		Cmd(input);
 	}
 	
 }
+
+
+
+
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+
+
+// console.log(type_prompt(home_path));
+
+// rl.on('line', function (input) {
+// 	read_command(input);
+// 	// while(stdoutStr == ''){
+
+// 	// }
+// 	console.log(stdoutStr);
+// 	stdoutStr = '';
+// 	console.log('\n 清除wwwwwww\n ');
+// 	console.log(type_prompt(home_path));
+// });
+
+
+// https://zeit.co/blog/async-and-await
+function sleep (time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
+
+
 
 
 var express = require('express'); 
@@ -66,21 +98,33 @@ var io = require('socket.io')(server);
 
 // app.use('/', express.static(__dirname + '/public')); 
 
-server.listen(80);
+server.listen(8080);
 
+console.log('服务器启动');
 //socket部分
 io.on('connection', function(socket) {
 	//触发客户端事件stdout
+	console.log('用户登陆');
+
 	socket.emit('stdout',type_prompt(home_path));
 	
 	//触发事件cmd
     socket.on('cmd', function(data) {
-        console.log(data);
+    	console.log(data);
 	cmdStr = data;
-	socket.emit('stdout','/n');
-	socket.emit('stdout',read_command());
-	socket.emit('stdout','/n');
-	socket.emit('stdout',type_prompt(home_path));
+	// socket.emit('stdout','/n');
+	read_command(cmdStr);
+
+	// 用法
+	sleep(400).then(() => {
+	    // 这里写sleep之后需要去做的事情
+	    socket.emit('stdout', stdoutStr);
+		socket.emit('stdout',type_prompt(home_path));
+		cmdStr = '';
+		stdoutStr = '';
+	})
+
+
     })
 
     //断开事件
