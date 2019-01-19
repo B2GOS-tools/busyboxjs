@@ -14,6 +14,7 @@ console.log(person.get_data());
 
 var exec = require('child_process').exec; 
 var execSync = require('child_process').execSync; 
+const { spawn } = require('child_process');
 
 var home_path = process.env.HOME;
 
@@ -87,11 +88,41 @@ io.on('connection', function(socket) {
 	
 	//触发事件cmd
     socket.on('cmd', function(data) {
-    	console.log(data);
-		cmdStr = data;
-		socket.emit('stdout', read_command(cmdStr));
-		socket.emit('stdout',type_prompt(home_path));
-		cmdStr = '';
+  //   	console.log(data);
+		// cmdStr = data;
+		// socket.emit('stdout', read_command(cmdStr));
+		// socket.emit('stdout',type_prompt(home_path));
+		// cmdStr = '';
+
+		var cmd_line = data.split(" ");
+		console.log(cmd_line.length);
+		var cmdStr_tmp = new Array();
+
+		cmd_line.forEach(function (val, index, array) {
+			if(index != 0 ){
+				  	cmdStr_tmp[index - 1] = val;
+			}
+		});
+
+		const cmd = spawn(cmd_line[0], cmdStr_tmp);
+
+		cmd.stdout.on('data', (data) => {
+		  console.log(`stdout: ${data}`);
+		  socket.emit('stdout', `${data}`);
+		});
+
+		cmd.stderr.on('data', (data) => {
+		  console.log(`stderr: ${data}`);
+		  socket.emit('stdout', data);
+		  socket.emit('stdout',type_prompt(home_path));
+		});
+
+		cmd.on('close', (code) => {
+		  console.log(`child process exited with code ${code}`);
+		  socket.emit('stdout',type_prompt(home_path));
+		});
+
+
 
     })
 

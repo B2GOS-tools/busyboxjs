@@ -15,18 +15,18 @@ arr.forEach(function (val, index, array) {
 	}
 });
 
-console.log(cmdStr_tmp);
 
-const ls = spawn(arr[0], cmdStr_tmp);
 
-ls.stdout.on('data', (data) => {
+const cmd = spawn(arr[0], cmdStr_tmp);
+
+cmd.stdout.on('data', (data) => {
   console.log(`stdout: ${data}`);
 });
 
-ls.stderr.on('data', (data) => {
+cmd.stderr.on('data', (data) => {
   console.log(`stderr: ${data}`);
 });
 
-ls.on('close', (code) => {
+cmd.on('close', (code) => {
   console.log(`child process exited with code ${code}`);
 });
