@@ -5,15 +5,21 @@
     <title>Socket.IO chat</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; background: #000;}
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; height: 45px;}
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      li {   color: #FFF; }
+      body { font: 13px Helvetica, Arial; background: #fff;}
+      #input_area { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; height: 45px;}
+      #input_area  input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #input_area  button { width: 8%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0;  overflow:auto; height: 92vh; width: 100%; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+
     </style>
   </head>
-  <body id="body">
-    <div id="register" onclick="register">
+  <body >
+    <div id = "content" >
+        <ul id="messages" ></ul>
+    </div>
+    <div id="input_area" onclick="register">
         <input id="inp" autocomplete="off" />
         <button>执行</button>
     </div>
@@ -25,9 +31,9 @@
     $(function () {
 
         var name = ''
-        var socket = io('http://127.0.0.1:8080');
+        var socket = io('http://127.0.0.1:8001');
 
-        $('#register button').on('click',function(){
+        $('#input_area button').on('click',function(){
             socket.emit('cmd', $('#inp').val());
         });
 
@@ -35,17 +41,19 @@
         $('#inp').bind('keyup', function(event) {
             if (event.keyCode == "13") {
                 //回车执行查询
-                $('#register button').click();
+                $('#input_area button').click();
             }
         });
 
-      //   //用户连接时触发
-      socket.on('stdout', function (data) {
-         // alert(data);
-        var d1 = document.getElementById('body'); 
-        d1.insertAdjacentHTML('afterend', '<li id = "commond_line" >' + data + '</li>');
-      });
+        //   //用户连接时触发
+        socket.on('stdout', function (data) {
+          // 往lu动态添加li
+          $('#messages').append($('<li>').text(data));
+          // 默认滚动底部
+          $('#messages').scrollTop( $('#messages')[0].scrollHeight);
+        });
 
+    
     });
 
   </script>

@@ -59,11 +59,43 @@ function read_command(input){
 
 
 
-const readline = require('readline');
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+
+
+var dbObject = require('./db.js');
+
+function init() {
+     var dbParams = new Object();
+     dbParams.db_name = "SISO";
+     dbParams.db_version = "2";
+     dbParams.db_store_name = "Test";
+     dbObject.init(dbParams);
+ }
+ function Tinsert() {
+     // 填入初始值
+     dbObject.put({ title: "Quarry Memories", author: "Fred", isbn: 123456 }, 1);
+     dbObject.put({ title: "Water Buffaloes", author: "Fred", isbn: 234567 }, 2);
+     dbObject.put({ title: "Bedrock Nights", author: "Barney", isbn: 345678 }, 3);
+ }
+ function Tselect() {
+     dbObject.select(3);
+ }
+ function Tupdate() {
+     dbObject.put({ title: "Quarry wu", author: "lex", isbn: 123456 }, 1);
+ }
+ function Tdelete() {
+     dbObject.delete(3);
+ }
+ function Tclear() {
+     dbObject.clear();
+ }
+
+
+
+// const readline = require('readline');
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
 
 
 
@@ -98,42 +130,61 @@ var io = require('socket.io')(server);
 
 // app.use('/', express.static(__dirname + '/public')); 
 
-server.listen(8080);
+server.listen(8001);
 
 console.log('服务器启动');
+
+init();
+
+Tinsert();
 //socket部分
 io.on('connection', function(socket) {
 	//触发客户端事件stdout
-	console.log('用户登陆');
+	console.log('用户登陆' + socket.id);
 
 	socket.emit('stdout',type_prompt(home_path));
 	
 	//触发事件cmd
     socket.on('cmd', function(data) {
     	console.log(data);
-	cmdStr = data;
-	// socket.emit('stdout','/n');
-	read_command(cmdStr);
+		cmdStr = data;
+		// socket.emit('stdout','/n');
+		read_command(cmdStr);
 
-	// 用法
-	sleep(400).then(() => {
-	    // 这里写sleep之后需要去做的事情
-	    socket.emit('stdout', stdoutStr);
-		socket.emit('stdout',type_prompt(home_path));
-		cmdStr = '';
-		stdoutStr = '';
-	})
-
-
+		// 用法
+		sleep(400).then(() => {
+		    // 这里写sleep之后需要去做的事情
+		    socket.emit('stdout', stdoutStr);
+			socket.emit('stdout',type_prompt(home_path));
+			cmdStr = '';
+			stdoutStr = '';
+		})
     })
 
     //断开事件
     socket.on('disconnect', function(data) {
-        //console.log('断开',data);
-        //socket.emit('c_leave','离开');
-        //socket.broadcast用于向整个网络广播(除自己之外)
-        //socket.broadcast.emit('c_leave','某某人离开了')
+    	console.log('用户断开' + socket.id);
+
     })
 
+    socket.on('reconnect', function(data) {
+        console.log('reconnect',data);
+    })
+
+    
+
+    // join in room
+    // socket.join('group1');
+
+    // leave the room
+    // socket.leave(data.room);
+
+ //    获取连接的客户端socket
+	// io.sockets.clients().forEach(function (socket) {
+	//     //.....
+	// })
+
 });
+
+
 
