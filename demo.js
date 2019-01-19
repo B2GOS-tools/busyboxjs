@@ -6,9 +6,10 @@ function sleep (time) {
 
 
 //需要引入db.js的其他文件
-var person = require('./db.js');
-person.open_json('./person.json');
-console.log(person.get_data());
+var db = require('./db.js');
+db.open_json('./person.json');
+
+// console.log(db.get_data());
 
 
 
@@ -73,7 +74,8 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 
-// app.use('/', express.static(__dirname + '/public')); 
+// app.use('/', express.static(__dirname + '/demo.html')); 
+app.use(express.static(__dirname + '/'));
 
 server.listen(8001);
 
@@ -88,40 +90,37 @@ io.on('connection', function(socket) {
 	
 	//触发事件cmd
     socket.on('cmd', function(data) {
-  //   	console.log(data);
-		// cmdStr = data;
-		// socket.emit('stdout', read_command(cmdStr));
-		// socket.emit('stdout',type_prompt(home_path));
-		// cmdStr = '';
 
-		var cmd_line = data.split(" ");
-		console.log(cmd_line.length);
-		var cmdStr_tmp = new Array();
+    	// socket.emit('stdout', `${data}`);
+    	socket.to(/* another socket id */).emit('allow' + data);
 
-		cmd_line.forEach(function (val, index, array) {
-			if(index != 0 ){
-				  	cmdStr_tmp[index - 1] = val;
-			}
-		});
+		// var cmd_line = data.split(" ");
+		// // console.log(cmd_line.length);
+		// var cmdStr_tmp = new Array();
 
-		const cmd = spawn(cmd_line[0], cmdStr_tmp);
+		// cmd_line.forEach(function (val, index, array) {
+		// 	if(index != 0 ){
+		// 		  	cmdStr_tmp[index - 1] = val;
+		// 	}
+		// });
 
-		cmd.stdout.on('data', (data) => {
-		  console.log(`stdout: ${data}`);
-		  socket.emit('stdout', `${data}`);
-		});
+		// const cmd = spawn(cmd_line[0], cmdStr_tmp);
 
-		cmd.stderr.on('data', (data) => {
-		  console.log(`stderr: ${data}`);
-		  socket.emit('stdout', data);
-		  socket.emit('stdout',type_prompt(home_path));
-		});
+		// cmd.stdout.on('data', (data) => {
+		//   console.log(`stdout: ${data}`);
+		//   socket.emit('stdout', `${data}`);
+		// });
 
-		cmd.on('close', (code) => {
-		  console.log(`child process exited with code ${code}`);
-		  socket.emit('stdout',type_prompt(home_path));
-		});
+		// cmd.stderr.on('data', (data) => {
+		//   console.log(`stderr: ${data}`);
+		//   socket.emit('stdout', data);
+		//   socket.emit('stdout',type_prompt(home_path));
+		// });
 
+		// cmd.on('close', (code) => {
+		//   console.log(`child process exited with code ${code}`);
+		//   socket.emit('stdout',type_prompt(home_path));
+		// });
 
 
     })
