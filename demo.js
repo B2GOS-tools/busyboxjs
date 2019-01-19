@@ -1,7 +1,19 @@
-var exec = require('child_process').exec; 
+// https://zeit.co/blog/async-and-await
+function sleep (time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
 
-var arguments = process.argv.splice(2);
-console.log('所传递的参数是：', arguments);
+
+
+//需要引入db.js的其他文件
+var person = require('./db.js');
+person.open_json('./person.json');
+console.log(person.get_data());
+
+
+
+var exec = require('child_process').exec; 
+var execSync = require('child_process').execSync; 
 
 var home_path = process.env.HOME;
 
@@ -11,13 +23,8 @@ var stdoutStr = '';
 
 
 function Cmd(cmdStr){
-	exec(cmdStr, function(err,stdout,stderr){
-   	 if(err) {
-		stdoutStr = stderr ;
-  	  } else {
-		stdoutStr = stdout ;
-  	  }
-});
+	// console.log(execSync(cmdStr)[0]);
+	return execSync(cmdStr).toString();
 
 }
 
@@ -51,73 +58,10 @@ function read_command(input){
 		});
 		process.chdir(cmdStr_tmp);
 	}else {
-		Cmd(input);
+		return Cmd(input);
 	}
 	
 }
-
-
-
-
-
-
-var dbObject = require('./db.js');
-
-function init() {
-     var dbParams = new Object();
-     dbParams.db_name = "SISO";
-     dbParams.db_version = "2";
-     dbParams.db_store_name = "Test";
-     dbObject.init(dbParams);
- }
- function Tinsert() {
-     // 填入初始值
-     dbObject.put({ title: "Quarry Memories", author: "Fred", isbn: 123456 }, 1);
-     dbObject.put({ title: "Water Buffaloes", author: "Fred", isbn: 234567 }, 2);
-     dbObject.put({ title: "Bedrock Nights", author: "Barney", isbn: 345678 }, 3);
- }
- function Tselect() {
-     dbObject.select(3);
- }
- function Tupdate() {
-     dbObject.put({ title: "Quarry wu", author: "lex", isbn: 123456 }, 1);
- }
- function Tdelete() {
-     dbObject.delete(3);
- }
- function Tclear() {
-     dbObject.clear();
- }
-
-
-
-// const readline = require('readline');
-// const rl = readline.createInterface({
-//     input: process.stdin,
-//     output: process.stdout
-// });
-
-
-
-// console.log(type_prompt(home_path));
-
-// rl.on('line', function (input) {
-// 	read_command(input);
-// 	// while(stdoutStr == ''){
-
-// 	// }
-// 	console.log(stdoutStr);
-// 	stdoutStr = '';
-// 	console.log('\n 清除wwwwwww\n ');
-// 	console.log(type_prompt(home_path));
-// });
-
-
-// https://zeit.co/blog/async-and-await
-function sleep (time) {
-  return new Promise((resolve) => setTimeout(resolve, time));
-}
-
 
 
 
@@ -134,9 +78,6 @@ server.listen(8001);
 
 console.log('服务器启动');
 
-init();
-
-Tinsert();
 //socket部分
 io.on('connection', function(socket) {
 	//触发客户端事件stdout
@@ -148,17 +89,10 @@ io.on('connection', function(socket) {
     socket.on('cmd', function(data) {
     	console.log(data);
 		cmdStr = data;
-		// socket.emit('stdout','/n');
-		read_command(cmdStr);
+		socket.emit('stdout', read_command(cmdStr));
+		socket.emit('stdout',type_prompt(home_path));
+		cmdStr = '';
 
-		// 用法
-		sleep(400).then(() => {
-		    // 这里写sleep之后需要去做的事情
-		    socket.emit('stdout', stdoutStr);
-			socket.emit('stdout',type_prompt(home_path));
-			cmdStr = '';
-			stdoutStr = '';
-		})
     })
 
     //断开事件
