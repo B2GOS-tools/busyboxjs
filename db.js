@@ -4,14 +4,6 @@ var userid_data = new Object();//object
 
 
 function open_json(file_path){
-      // fs.readFile(file_path,function(err,data){
-      //     if(err){
-      //         return console.error(err);
-      //     }
-      //     // JSON to Object
-      //     userid = JSON.parse(data);
-      //     // console.log(userid);
-      // });
       userid_data = JSON.parse(fs.readFileSync(file_path));
 }
 

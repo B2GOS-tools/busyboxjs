@@ -1,21 +1,23 @@
 // https://zeit.co/blog/async-and-await
-function sleep (time) {
-  return new Promise((resolve) => setTimeout(resolve, time));
-}
+// function sleep (time) {
+//   return new Promise((resolve) => setTimeout(resolve, time));
+// }
 
 
 
 //需要引入db.js的其他文件
-var db = require('./db.js');
-db.open_json('./person.json');
+// var db = require('./db.js');
+// db.open_json('./person.json');
 
 // console.log(db.get_data());
 
 
-
-var exec = require('child_process').exec; 
-var execSync = require('child_process').execSync; 
+// exec
+// var exec = require('child_process').exec; 
+// var execSync = require('child_process').execSync; 
 const { spawn } = require('child_process');
+
+
 
 var home_path = process.env.HOME;
 
@@ -24,11 +26,20 @@ var cmdStr = '';
 var stdoutStr = '';
 
 
-function Cmd(cmdStr){
-	// console.log(execSync(cmdStr)[0]);
-	return execSync(cmdStr).toString();
+var express = require('express'); 
+var app = express();
 
-}
+var server = require('http').createServer(app);
+var io = require('socket.io')(server);
+
+var manageid;
+
+
+// function Cmd(cmdStr){
+// 	// console.log(execSync(cmdStr)[0]);
+// 	return execSync(cmdStr).toString();
+
+// }
 
 
 function type_prompt(home_path){
@@ -43,43 +54,46 @@ function type_prompt(home_path){
 }
 
 
-function read_command(input){
-	//
-	var arr = input.split(" ");
-	console.log(arr.length);
-	if( arr[0] == 'cd' ){
-		var cmdStr_tmp = '';
-		arr.forEach(function (val, index, array) {
+function read_command(socket,toid,input){
+
+		var cmd_line = input.split(" ");
+		var cmdStr_tmp = new Array();
+
+		cmd_line.forEach(function (val, index, array) {
 			if(index != 0 ){
-				if (index == 1) {
-					cmdStr_tmp = val;
-				}else{
-				  	cmdStr_tmp = cmdStr_tmp + ' ' +  val;
-				}
+				  	cmdStr_tmp[index - 1] = val;
 			}
 		});
-		process.chdir(cmdStr_tmp);
-	}else {
-		return Cmd(input);
-	}
+
+		const cmd = spawn(cmd_line[0], cmdStr_tmp);
+
+		cmd.stdout.on('data', (data) => {
+		  console.log(`stdout: ${data}`);
+		  socket.to(toid).emit('stdout', `${data}`);
+		});
+
+		cmd.stderr.on('data', (data) => {
+		  console.log(`stderr: ${data}`);
+		  socket.to(toid).emit('stdout', data);
+		  socket.to(toid).emit('stdout',type_prompt(home_path));
+		});
+
+		cmd.on('close', (code) => {
+		  console.log(`child process exited with code ${code}`);
+		  socket.to(toid).emit('stdout',type_prompt(home_path));
+		});
 	
 }
 
 
 
-
-var express = require('express'); 
-var app = express();
-
-var server = require('http').createServer(app);
-var io = require('socket.io')(server);
-
-// app.use('/', express.static(__dirname + '/demo.html')); 
 app.use(express.static(__dirname + '/'));
 
 server.listen(8001);
 
 console.log('服务器启动');
+
+
 
 //socket部分
 io.on('connection', function(socket) {
@@ -88,39 +102,23 @@ io.on('connection', function(socket) {
 
 	socket.emit('stdout',type_prompt(home_path));
 	
+    socket.on('iammanage', function(data) {
+    	manageid = socket.id;
+
+    })
+
+
+
 	//触发事件cmd
     socket.on('cmd', function(data) {
 
-    	// socket.emit('stdout', `${data}`);
-    	socket.to(/* another socket id */).emit('allow' + data);
-
-		// var cmd_line = data.split(" ");
-		// // console.log(cmd_line.length);
-		// var cmdStr_tmp = new Array();
-
-		// cmd_line.forEach(function (val, index, array) {
-		// 	if(index != 0 ){
-		// 		  	cmdStr_tmp[index - 1] = val;
-		// 	}
-		// });
-
-		// const cmd = spawn(cmd_line[0], cmdStr_tmp);
-
-		// cmd.stdout.on('data', (data) => {
-		//   console.log(`stdout: ${data}`);
-		//   socket.emit('stdout', `${data}`);
-		// });
-
-		// cmd.stderr.on('data', (data) => {
-		//   console.log(`stderr: ${data}`);
-		//   socket.emit('stdout', data);
-		//   socket.emit('stdout',type_prompt(home_path));
-		// });
-
-		// cmd.on('close', (code) => {
-		//   console.log(`child process exited with code ${code}`);
-		//   socket.emit('stdout',type_prompt(home_path));
-		// });
+    	// cmd_list[socket.id]= new Object({"cmd":data});
+    	// console.log(cmd_list);
+    	send_manage_data = new Object();
+    	send_manage_data.userid = socket.id ;
+    	send_manage_data.cmd = data ;
+    	send_manage_data.title = socket.id+ '申请命令：'+data;
+    	socket.to(manageid).emit('allow', send_manage_data);
 
 
     })
@@ -135,7 +133,20 @@ io.on('connection', function(socket) {
         console.log('reconnect',data);
     })
 
-    
+    socket.on('test', function(data) {
+       console.log(data)
+    })
+
+    socket.on('send_manage_data_allow', function(data) {
+       // console.log(data);
+       read_command(socket,data.id,data.cmd);
+    })
+
+    socket.on('send_manage_data_deny', function(data) {
+       // console.log(data);
+       socket.to(data.id).emit('stdout','deny exec!');
+       socket.to(data.id).emit('stdout',type_prompt(home_path));
+    })
 
     // join in room
     // socket.join('group1');
